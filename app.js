@@ -10,6 +10,7 @@ if (process.env.NODE_ENV === "production") {
   process.env.NEW_RELIC_HOME = __dirname+"/config"; require("newrelic");
 }
 
+
 var express = require("express"),
     path = require("path"),
     favicon = require("serve-favicon"),
@@ -19,6 +20,8 @@ var express = require("express"),
     cors = require("cors"),
     bodyParser = require("body-parser"),
     app = express();
+
+process.env.PUBLIC_ROOT = path.join(__dirname, 'public');
 
 app.set("title", "rfcx-api");
 app.set("port", process.env.PORT || 8080);
@@ -45,6 +48,7 @@ var routes = {
                 require("./routes/v1/sites-guardians") 
               ],
     "audio": [ require("./routes/v1/audio") ],
+    "events": [ require("./routes/v1/events") ],
     "checkins": [ require("./routes/v1/checkins") ],
     "users": [ require("./routes/v1/users") ],
     "shortlinks": [ require("./routes/v1/shortlinks") ]

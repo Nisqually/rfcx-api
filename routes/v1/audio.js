@@ -7,7 +7,8 @@ var passport = require("passport");
 passport.use(require("../../middleware/passport-token").TokenStrategy);
 
 router.route("/:audio_id")
-  .get(passport.authenticate("token",{session:false}), function(req,res) {
+  //.get(passport.authenticate("token",{session:false}), function(req,res) {
+    .get(function(req,res) {
 
     models.GuardianAudio
       .findOne({ 

@@ -78,7 +78,6 @@ exports.models = {
                  if (dbRow.Event != null) { audio.events = views.models.guardianEvents(req,res,dbRow.Event); }
 
                 jsonArray.push(audio);
-
                 if (jsonArray.length == dbAudio.length) {
                   resolve(jsonArray);
                 }
