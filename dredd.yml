@@ -3,10 +3,10 @@ custom:
   apiaryApiKey: bd2be04725ba8aa0dc853df6b275b3c1
   apiaryApiName: betaplayer
 dry-run: null
-hookfiles: hooks/*
+hookfiles: [hooks/*.js,config/hooks.js]
 language: nodejs
 sandbox: false
-server: bin/start
+server: null
 server-wait: 10
 init: false
 names: false

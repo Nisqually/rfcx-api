@@ -48,3 +48,5 @@ node_modules
 # Intelli J Files
 /.idea
 rfcx-api.iml
+
+config/hooks.js
