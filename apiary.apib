@@ -1,10 +1,12 @@
 FORMAT: 1A
 HOST: http://127.0.0.1:8080/v1/
 
-# Beta Player API
+# RFCX API
 
 Caution: all of these endpoints are still in development. These are not stable
 intefaces.
+
+# Group Beta Player
 
 Access live streams from the rain forest.
 
@@ -72,7 +74,7 @@ Internal server error
               }
             }
 
-## Meta Data [/player/web]
+## Player Meta Data [/player/web]
 ### Retrieve Streaming Information [GET]
 Retrieves streaming information for curated and real-time streams about
 (1) urls to download audio files, (2) stream-specific flick photo album and
@@ -387,6 +389,54 @@ classification was added to the audio file's analytics.
                     }
               }
             }
+
+
+# Group Console App
+
+We need to add the guid (as x-auth-user) and token (as x-auth-token) as headers
+to all further requests.
+
+## Authentication [/users/login]
+Get guid and token for user
+
+### Retrieve token [POST]
+
++ Request (application/json)
+
+        { }
+
++ Response 200 (application/json; charset=utf-8)
+Your password was correct and a token is included in the message.
+
+    + Attributes(array)
+
+        + (object) - user object response
+            + guid (string) - user id (x-auth-user header)
+            + type (string) - user type
+            + username (string) - username
+            + email (string) - user's email
+            + is_email_validated (boolean) - if email was validated by user
+            + last_login_at (string) - ISO 8601 date time string, last time user was online
+            + tokens (array) - array with user tokens
+                + (object)
+                    + token (string) = token value (x-auth-token header)
+                    + token_expires_at (string) = ISO 8601 date time string, time when token will be invalid
+
+    + Body
+
+            [{
+                "guid": "63079ab5-fd39-4486-b01c-f61426ffce50",
+                "type": "user",
+                "username": null,
+                "email": "sr.rassokhin@gmail.com",
+                "is_email_validated": false,
+                "last_login_at": "2016-06-01T09:58:50.660Z",
+                "tokens": [{
+                    "token": "xfji1qh1k58rphqwl1vp0cq3j3plqsf0fitduuq7",
+                    "token_expires_at": "2016-06-02T09:58:50.660Z"
+                }]
+            }]
+
 
 # Data Structures
 

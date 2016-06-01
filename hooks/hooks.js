@@ -3,7 +3,7 @@ var hooks = require('hooks');
 var stash = {};
 
 // hook to retrieve session on a login
-hooks.after('Authentication > Retrieve Token > Example 1', function (transaction) {
+hooks.after('Beta Player > Authentication > Retrieve Token > Example 1', function (transaction) {
   stash['guid'] = JSON.parse(transaction.real.body).token.guid;
   stash['token'] = JSON.parse(transaction.real.body).token.token;
 });
@@ -15,4 +15,3 @@ hooks.beforeEach(function (transaction) {
     transaction.request['headers']['x-auth-token'] = stash['token'];
   }
 });
-
