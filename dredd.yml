@@ -6,7 +6,7 @@ dry-run: null
 hookfiles: [hooks/*.js,config/hooks.js]
 language: nodejs
 sandbox: false
-server: null
+server: bin/start
 server-wait: 10
 init: false
 names: false
