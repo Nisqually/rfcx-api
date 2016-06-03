@@ -396,6 +396,74 @@ classification was added to the audio file's analytics.
 We need to add the guid (as x-auth-user) and token (as x-auth-token) as headers
 to all further requests.
 
+## Registration [/users/register]
+Create user account
+
+### Create user [POST]
+
++ Request (application/json)
+    + Headers
+
+            x-auth-token: tokenValue
+            x-auth-user: register
+
+    + Body
+
+            {
+                "email": "test@test.com",
+                "password": "123123",
+                "type": "user"
+            }
+
++ Response 200 (application/json; charset=utf-8)
+
+    + Attributes(array)
+
+        + (object) - user object response
+            + guid (string) - user id (x-auth-user header)
+            + type (string) - user type
+            + email (string) - user's email
+            + is_email_validated (boolean) - if email was validated by user
+            + last_login_at (string) - ISO 8601 date time string, last time user was online
+            + tokens (array) - array with user tokens
+                + (object)
+                    + token (string) = token value (x-auth-token header)
+                    + token_expires_at (string) = ISO 8601 date time string, time when token will be invalid
+
+    + Body
+
+            [{
+                "guid": "3832b4cd-b795-4826-b1f9-6b6c430cf0f4",
+                "type": "user",
+                "email": "asd@asd.com",
+                "is_email_validated": false,
+                "last_login_at": "2016-06-02T08:15:07.000Z",
+                "tokens": [{
+                    "token": "gr0mkm5ft2hci0grtwbobnh31g4jmy96nxxlwmcx",
+                    "token_expires_at": "2016-06-03T08:15:07.826Z"
+                }]
+            }]
+
++ Request (application/json)
+    + Headers
+
+            x-auth-token: tokenValue
+            x-auth-user: register
+
+    + Body
+
+            {
+                "email": "test@test.com",
+                "password": "123123",
+                "type": "user"
+            }
+
++ Response 401 (application/json; charset=utf-8)
+
+    + Body
+
+            Unauthorized
+
 ## Authentication [/users/login]
 Get guid and token for user
 
@@ -437,6 +505,45 @@ Your password was correct and a token is included in the message.
                 }]
             }]
 
+## User Info [/users/{user_id}]
+
+### Get user data [GET]
+
++ Parameters
+    +  user_id: `a4d3ed62-456d-4266-b018-17d9d45d5dbf` (string, required) - guid of the user
+
++ Request (application/x-www-form-urlencoded)
+
++ Response 200 (application/json; charset=utf-8)
+
+    + Attributes(array)
+
+        + (object) - user object response
+            + guid (string) - user id (x-auth-user header)
+            + type (string) - user type
+            + username (string) - username
+            + email (string) - user's email
+            + is_email_validated (boolean) - if email was validated by user
+            + last_login_at (string) - ISO 8601 date time string, last time user was online
+            + tokens (array) - array with user tokens
+                + (object)
+                    + token (string) = token value (x-auth-token header)
+                    + token_expires_at (string) = ISO 8601 date time string, time when token will be invalid
+
+    + Body
+
+            [{
+                "guid": "63079ab5-fd39-4486-b01c-f61426ffce50",
+                "type": "user",
+                "username": null,
+                "email": "test@local.com",
+                "is_email_validated": false,
+                "last_login_at": "2016-06-01T09:58:50.660Z",
+                "tokens": [{
+                    "token": "xfji1qh1k58rphqwl1vp0cq3j3plqsf0fitduuq7",
+                    "token_expires_at": "2016-06-02T09:58:50.660Z"
+                }]
+            }]
 
 # Data Structures
 
