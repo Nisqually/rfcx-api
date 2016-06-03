@@ -507,7 +507,7 @@ Your password was correct and a token is included in the message.
 
 ## User Info [/users/{user_id}]
 
-### Get user data [GET]
+### Get User Data [GET]
 
 + Parameters
     +  user_id: `a4d3ed62-456d-4266-b018-17d9d45d5dbf` (string, required) - guid of the user
@@ -544,6 +544,95 @@ Your password was correct and a token is included in the message.
                     "token_expires_at": "2016-06-02T09:58:50.660Z"
                 }]
             }]
+
+### Update User Data [POST]
+
+For the current moment this endpoint doesn't update user info
+
+User can change his own profile's info. User can't change profile info of another user account.
+
++ Parameters
+    +  user_id: `e8242e5e-d8ca-4e67-aa59-b0dc36d9e3e5` (string, required) - guid of the user
+
++ Request (application/json)
+
+            {
+                "username": "testname"
+            }
+
++ Response 200 (application/json; charset=utf-8)
+
+    + Attributes(array)
+
+        + (object) - user object response
+            + guid (string) - user id (x-auth-user header)
+            + type (string) - user type
+            + username (string) - username
+            + email (string) - user's email
+            + is_email_validated (boolean) - if email was validated by user
+            + last_login_at (string) - ISO 8601 date time string, last time user was online
+            + tokens (array) - array with user tokens
+                + (object)
+                    + token (string) = token value (x-auth-token header)
+                    + token_expires_at (string) = ISO 8601 date time string, time when token will be invalid
+
+    + Body
+
+            [{
+                "guid": "63079ab5-fd39-4486-b01c-f61426ffce50",
+                "type": "user",
+                "username": null,
+                "email": "test@local.com",
+                "is_email_validated": false,
+                "last_login_at": "2016-06-01T09:58:50.660Z",
+                "tokens": [{
+                    "token": "xfji1qh1k58rphqwl1vp0cq3j3plqsf0fitduuq7",
+                    "token_expires_at": "2016-06-02T09:58:50.660Z"
+                }]
+            }]
+
+
+## Sites [/sites]
+
+Get sites collection
+
+### Get Sites [GET]
+
++ Request (application/x-www-form-urlencoded)
+
++ Response 200 (application/json; charset=utf-8)
+
+    + Attributes(array)
+
+        + (object) - site object
+            + guid (string) - site's id
+            + name (string) - site's name
+            + description (string) - site's description
+            + cartodb_map_id (string) - map id for cartodb service
+            + flickr_photoset_id (string) - flickr service id
+            + is_active (boolean) - site's status
+
+    + Body
+
+            [
+              {
+                "guid": "derc",
+                "name": "RFCx Lab",
+                "description": "Haight Ashbury, San Francisco, California",
+                "cartodb_map_id": "82b89e88-f90d-11e5-bdca-0ecd1babdde5",
+                "flickr_photoset_id": {},
+                "is_active": true
+              },
+              {
+                "guid": "bolivia",
+                "name": "Bolivia-Liz",
+                "description": "Test Pilot",
+                "cartodb_map_id": {},
+                "flickr_photoset_id": {},
+                "is_active": true
+              }
+            ]
+
 
 # Data Structures
 
