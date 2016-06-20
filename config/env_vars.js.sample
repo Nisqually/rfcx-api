@@ -27,6 +27,9 @@ exports.env = {
   NEW_RELIC_KEY: "",
   MANDRILL_KEY: "",
 
-  SEQUELIZE_VERBOSE: false
-  
-}
+  SEQUELIZE_VERBOSE: false,
+
+  CARTODB_USER: "",
+  CARTODB_KEY: ""
+
+};
