@@ -34,9 +34,20 @@ router.route("/multiple")
     var converter = new ApiConverter("classification", req);
     // iterate through all classifications inslide `list` attribute
     for (var i = 0; i < req.body.data.attributes.list.length; i++) {
-      var apiClassification = converter.mapApiToSequelize(req.body.data.attributes.list[i]);
-      apiClassification.analyst = req.rfcx.auth_token_info.owner_id;
-      promises.push(models.Classifications.create(apiClassification));
+      // wrap all in self-executing function to have access to apiClassification in promise callback
+      (function() {
+        var apiClassification = converter.mapApiToSequelize(req.body.data.attributes.list[i]);
+        apiClassification.analyst = req.rfcx.auth_token_info.owner_id;
+        // if item is new then it will be created
+        // if item was created earlier, then it will be updated in promise callback
+        var promise = models.Classifications.findOrCreate({where: {id: apiClassification.id}, defaults: apiClassification});
+        promise.spread(function(item, isCreated) {
+          if (!isCreated) {
+            item.update(apiClassification);
+          }
+        });
+        promises.push(promise);
+      })();
     }
     Promise.all(promises)
       .then(function(dbApiClassifications) {
