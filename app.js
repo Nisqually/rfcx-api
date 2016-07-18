@@ -39,6 +39,7 @@ var routes = {
                     require("./routes/v1/guardians/guardians-checkins"), 
                     require("./routes/v1/guardians/guardians-checkins-audio-events"),
                     require("./routes/v1/guardians/guardians-audio"),
+                    require("./routes/v1/guardians/guardians-audio-analysis"),
                     require("./routes/v1/guardians/guardians-audio-uploads"),
                     require("./routes/v1/guardians/guardians-events"),
                     require("./routes/v1/guardians/guardians-meta"),
@@ -58,6 +59,12 @@ var routes = {
     "shortlinks": [ require("./routes/v1/shortlinks/shortlinks") ],
     "player": [ require("./routes/v1/player/player") ],
     "assets": [ require("./routes/v1/assets/assets") ],
+    "reports": [ require("./routes/v1/reports/reports")],
+
+      "tags": [require("./routes/v1/tags/tags")],
+
+      "datafilters": [require("./routes/v1/datafilters/datafilters")],
+
   },
   "v2": {
   }

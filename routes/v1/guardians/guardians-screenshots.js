@@ -22,7 +22,7 @@ router.route("/:guardian_id/screenshots")
         if (req.rfcx.starting_after != null) { dbQuery[dateClmn]["$gt"] = req.rfcx.starting_after; }
         var dbQueryOrder = (req.rfcx.order != null) ? req.rfcx.order : "DESC";
 
-        models.GuardianMetaScreenShot
+        return models.GuardianMetaScreenShot
           .findAll({ 
             where: dbQuery, 
             include: [ { all: true } ], 
@@ -30,13 +30,8 @@ router.route("/:guardian_id/screenshots")
             limit: req.rfcx.limit,
             offset: req.rfcx.offset
           }).then(function(dbScreenshots){
-
-            if (dbScreenshots.length < 1) {
-              httpError(res, 404, "database");
-            } else {
-              res.status(200).json(views.models.guardianMetaScreenshots(req,res,dbScreenshots)); 
-            }
-
+            res.status(200).json(views.models.guardianMetaScreenshots(req,res,dbScreenshots));
+            return null;
         }).catch(function(err){
           console.log("failed to return screenshots | "+err);
           if (!!err) { res.status(500).json({msg:"failed to return screenshots"}); }

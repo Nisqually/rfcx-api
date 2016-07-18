@@ -10,7 +10,6 @@ passport.use(require("../../../middleware/passport-token").TokenStrategy);
 
 router.route("/login")
   .post(function(req,res) {
-
     var userInput = {
       email: (req.body.email != null) ? req.body.email.toLowerCase() : null,
       pswd: req.body.password
@@ -35,7 +34,7 @@ router.route("/login")
           dbUser.last_login_at = new Date();
           dbUser.save();
 
-          token.createUserToken({
+          return token.createUserToken({
             token_type: "login",
             created_by: req.rfcx.url_path,
             reference_tag: dbUser.guid,
@@ -48,7 +47,7 @@ router.route("/login")
               token_expires_at: tokenInfo.token_expires_at
             };
 
-            res.status(200).json(views.models.users(req,res,dbUser));
+            return res.status(200).json(views.models.users(req,res,dbUser));
 
           }).catch(function(err){
             console.log(err);
@@ -58,7 +57,7 @@ router.route("/login")
           });
 
         } else {
-          res.status(401).json({ 
+          return res.status(401).json({
             message: "invalid email or password", error: { status: 401 }
           });
         }
@@ -137,7 +136,7 @@ router.route("/register")
 router.route("/:user_id")
   .get(passport.authenticate("token",{session:false}), function(req,res) {
 
-    models.User 
+    models.User
       .findAll({
         where: { guid: req.params.user_id },
         limit: 1
@@ -148,6 +147,8 @@ router.route("/:user_id")
         } else {
           res.status(200).json(views.models.users(req,res,dbUser));
         }
+
+        return null;
 
       }).catch(function(err){
         console.log("failed to return user | "+err);
