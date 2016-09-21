@@ -6,80 +6,161 @@ var views = require("../../../views/v1");
 var httpError = require("../../../utils/http-errors.js");
 var passport = require("passport");
 passport.use(require("../../../middleware/passport-token").TokenStrategy);
-var ApiConverter = require("../../../utils/api-converter");
 
-router.route("/")
+router.route("/event")
   .get(passport.authenticate("token",{session:false}), function(req,res) {
 
-    var converter = new ApiConverter("event", req);
+    var contentType = req.rfcx.content_type;
+    var isFile = false;
+    if (req.originalUrl.indexOf('.json') !== -1 || req.originalUrl.indexOf('.csv') !== -1) {
+      isFile = true;
+    }
 
-    var limit  = parseInt(req.query.limit) || 500,
+    var limit  = parseInt(req.query.limit) || 1000,
         offset = parseInt(req.query.offset) || 0;
 
     // by default all clauses are empty. we will fill them if corresponding params are defined in url
     var whereClauses = {
       event: {},
-      guardian: {},
       site: {},
-      audio: {}
+      audio: {},
+      type: {},
+      value: {}
     };
 
-    if (req.query.after_begins_at_analysis) {
-      whereClauses.event.begins_at_analysis = {
-        $gte: req.query.after_begins_at_analysis
+    if (req.query.updated_after) {
+      if (!whereClauses.event.updated_at) {
+        whereClauses.event.updated_at = {};
+      }
+      whereClauses.event.updated_at.$gt = req.query.updated_after;
+    }
+
+    if (req.query.updated_before) {
+      if (!whereClauses.event.updated_at) {
+        whereClauses.event.updated_at = {};
+      }
+      whereClauses.event.updated_at.$lt = req.query.updated_before;
+    }
+
+    if (req.query.created_after) {
+      if (!whereClauses.event.created_at) {
+        whereClauses.event.created_at = {};
+      }
+      whereClauses.event.created_at.$gt = req.query.created_after;
+    }
+
+    if (req.query.created_before) {
+      if (!whereClauses.event.created_at) {
+        whereClauses.event.created_at = {};
+      }
+      whereClauses.event.created_at.$lte = req.query.created_before;
+    }
+
+    if (req.query.starting_after) {
+      whereClauses.event.begins_at = {
+        $gt: req.query.starting_after
       };
     }
 
-    if (req.query.classification_analysis) {
-      whereClauses.event.classification_analysis = req.query.classification_analysis;
-    }
-
-    if (req.query.guardian_guid) {
-      whereClauses.guardian.guid = req.query.guardian_guid;
-    }
-
-    if (req.query.site_guid) {
-      whereClauses.site.guid = req.query.site_guid;
-    }
-
-    if (req.query.after_measured_at) {
-      whereClauses.audio.measured_at = {
-        $gte: req.query.after_measured_at
+    if (req.query.ending_before) {
+      whereClauses.event.ends_at = {
+        $lte: req.query.ending_before
       };
     }
 
-    return models.GuardianEvent
+    if (req.query.minimum_confidence) {
+      whereClauses.event.confidence = {
+        $gte: req.query.minimum_confidence
+      };
+    }
+
+    if (req.query.values && Array.isArray(req.query.values)) {
+      whereClauses.value.value = {
+        $in: req.query.values
+      };
+    }
+
+    if (req.query.sites && Array.isArray(req.query.sites)) {
+      whereClauses.site.guid = {
+        $in: req.query.sites
+      };
+    }
+
+    if (req.query.types && Array.isArray(req.query.types)) {
+      whereClauses.type.value = {
+        $in: req.query.types
+      };
+    }
+
+    return models.GuardianAudioEvent
       .findAndCountAll({
         where: whereClauses.event,
-        include: [
-          { model: models.GuardianAudio, as: 'Audio', where: whereClauses.audio },
-          { model: models.Guardian, as: 'Guardian', where: whereClauses.guardian },
-          { model: models.GuardianSite, as: 'Site', where: whereClauses.site },
-          { model: models.GuardianCheckIn, as: 'CheckIn' }
-        ],
         limit: limit,
-        offset: offset
-      }).then(function(dbEvents){
-        var data = {
-          limit: limit,
-          offset: offset,
-          number_of_results: dbEvents.count
-        };
-        if (dbEvents.rows.length) {
-          return views.models.guardianEvents(req,res,dbEvents.rows)
+        offset: offset,
+        include: [
+          {
+            model: models.GuardianAudio,
+            as: 'Audio',
+            where: whereClauses.audio,
+            attributes: [
+              'guid',
+              'measured_at'
+            ],
+            include: [
+              {
+                model: models.GuardianSite,
+                as: 'Site',
+                where: whereClauses.site,
+                attributes: [
+                  'guid'
+                ]
+              },
+              {
+                model: models.Guardian,
+                as: 'Guardian',
+                attributes: [
+                  'latitude',
+                  'longitude'
+                ]
+              }
+            ]
+          },
+          {
+            model: models.GuardianAudioEventValue,
+            as: 'Value',
+            where: whereClauses.value
+          },
+          {
+            model: models.GuardianAudioEventType,
+            as: 'Type',
+            where: whereClauses.type
+          }
+        ]
+      })
+      .then(function(dbEvents){
+        if (contentType === 'json') {
+          return views.models.guardianAudioEventsJson(req,res,dbEvents.rows)
             .then(function(json){
-              data.result = json;
-              var api = converter.cloneSequelizeToApi(data);
-              res.status(200).json(api);
+              // if client requested json file, then respond with file
+              // if not, respond with simple json
+              res.contentType(isFile? 'text/json' : 'application/json');
+              if (isFile) {
+                res.attachment('event.json');
+              }
+              res.status(200).send(json);
             });
         }
-        else {
-          data.result = [];
-          var api = converter.cloneSequelizeToApi(data);
-          return res.status(200).json(api);
+        else if (contentType === 'csv') {
+          return views.models.guardianAudioEventsCSV(req,res,dbEvents.rows)
+            .then(function(csv){
+              res.contentType('text/csv');
+              res.attachment('event.csv');
+              res.status(200).send(csv);
+            });
         }
       })
       .catch(function (err) {
+        console.log('Error while searching Audio Events', arguments);
         res.status(500).json({msg: err});
       });
 
@@ -89,8 +170,8 @@ router.route("/:event_id")
   .get(passport.authenticate("token",{session:false}), function(req,res) {
 
     return models.GuardianEvent
-      .findAll({ 
-        where: { guid: req.params.event_id }, 
+      .findAll({
+        where: { guid: req.params.event_id },
         include: [ { all: true } ],
         limit: 1
       }).then(function(dbEvent){
@@ -154,6 +235,5 @@ router.route("/:event_id/review")
 
   })
 ;
-
 
 module.exports = router;
