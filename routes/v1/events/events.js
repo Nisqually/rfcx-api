@@ -6,6 +6,8 @@ var views = require("../../../views/v1");
 var httpError = require("../../../utils/http-errors.js");
 var passport = require("passport");
 passport.use(require("../../../middleware/passport-token").TokenStrategy);
+var Promise = require("bluebird");
+var ApiConverter = require("../../../utils/api-converter");
 
 router.route("/event")
   .get(passport.authenticate("token",{session:false}), function(req,res) {
@@ -189,6 +191,103 @@ router.route("/:event_id")
 
   })
 ;
+
+router.route('/')
+  .post(passport.authenticate("token",{session:false}), function(req,res) {
+
+    var converter = new ApiConverter("event", req);
+
+    var body = req.body;
+
+    var attrs = {
+      confidence: body.confidence,
+      windows: body.windows,
+      audio_id: body.audio_id,
+      type: body.type,
+      value: body.value,
+      begins_at: body.begins_at,
+      ends_at: body.ends_at,
+      shadow_latitude: body.shadow_latitude,
+      shadow_longitude: body.shadow_longitude,
+      model: body.model
+    };
+
+    function checkAttrValidity() {
+      var missingAttrs = '';
+
+      for (var key in attrs) {
+        if (attrs.hasOwnProperty(key)) {
+          if (attrs[key] === undefined || attrs[key] === null) {
+            missingAttrs += (' ' + key);
+          }
+        }
+      }
+
+      return {
+        status: !missingAttrs.length,
+        missingAttrsStr: missingAttrs.length? 'Missing required attributes:' + missingAttrs : null
+      };
+    }
+
+    var attrsValidity = checkAttrValidity();
+    if (!attrsValidity.status) {
+      return httpError(res, 400, null, attrsValidity.missingAttrsStr);
+    }
+
+    var promises = [];
+
+    promises.push(models.GuardianAudio.findOne({where: {guid: attrs.audio_id}}));
+    promises.push(models.AudioAnalysisModel.findOne({where: {shortname: attrs.model}}));
+    promises.push(models.GuardianAudioEventType.findOrCreate({where: {value: attrs.type}, defaults: {value: attrs.type}}));
+    promises.push(models.GuardianAudioEventValue.findOrCreate({where: {value: attrs.value}, defaults: {value: attrs.value}}));
+
+    Promise.all(promises)
+      .then(function(data) {
+
+        if (!data[0]) {
+          return httpError(res, 404, null, 'Audio with given guid not found');
+        }
+        if (!data[1]) {
+          return httpError(res, 404, null, 'Model with given name not found');
+        }
+
+        // replace names with ids
+        attrs.audio_id = data[0].id;
+        attrs.model = data[1].id;
+        attrs.type = data[2][0].id;
+        attrs.value = data[3][0].id;
+
+        return models.GuardianAudioEvent
+          .findOrCreate({
+            where: {
+              guid: body.guid
+            },
+            defaults: attrs
+          })
+      })
+      .spread(function(dbGuardianAudioEvent, created) {
+        if (created) {
+          return Promise.resolve(dbGuardianAudioEvent);
+        }
+        else {
+          return models.GuardianAudioEvent
+            .update(attrs, {where: {guid: dbGuardianAudioEvent.guid}})
+            .spread(function() {
+              return models.GuardianAudioEvent.findOne({where: {guid: dbGuardianAudioEvent.guid}});
+            });
+        }
+      })
+      .then(function(data) {
+        var apiEvent = converter.mapSequelizeToApi(data);
+        res.status(200).json(apiEvent);
+
+      })
+      .catch(function(err) {
+        console.log(err);
+        if (!!err) { httpError(res, 500, "database"); }
+      });
+
+  });
 
 router.route("/:event_id/review")
   .post(passport.authenticate("token",{session:false}), function(req,res) {
