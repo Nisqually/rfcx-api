@@ -52,9 +52,12 @@ var routes = {
                 require("./routes/v1/sites/sites-images") 
               ],
     "audio": [  require("./routes/v1/audio/audio"),
+                require("./routes/v1/audio/audio-collections"),
                 require("./routes/v1/audio/audio-tags")
               ],
-    "analysis": [  require("./routes/v1/analysis/analysis") ],
+    "analysis": [  require("./routes/v1/analysis/analysis"),
+                   require("./routes/v1/analysis/audio-analysis-training-set")
+                ],
     "users": [ require("./routes/v1/users/users") ],
     "events": [ require("./routes/v1/events/events") ],
     "shortlinks": [ require("./routes/v1/shortlinks/shortlinks") ],
