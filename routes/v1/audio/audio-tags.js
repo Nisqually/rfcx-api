@@ -6,15 +6,13 @@ var querystring = require("querystring");
 var fs = require("fs");
 var passport = require("passport");
 var httpError = require("../../../utils/http-errors.js");
+var analysisUtils = require("../../../utils/rfcx-analysis/analysis-queue.js").analysisUtils;
 passport.use(require("../../../middleware/passport-token").TokenStrategy);
 
 router.route("/:audio_id/tags")
   .post(passport.authenticate("token",{session:false}), function(req, res) {
-
-    var analysisResults;
-
     try {
-      analysisResults = JSON.parse(req.body.json);
+      analysisResults = req.body.json;
     }
     catch (e) {
       return httpError(res, 400, null, 'Failed to parse json data');
@@ -71,39 +69,41 @@ router.route("/:audio_id/tags")
         return Promise.all(removePromises);
       })
       .then(function() {
-
+        // contains all probabilities for the model
+        this.probabilityVector = [];
+        this.cognitionValue = "";
         var preInsertGuardianAudioTags = [];
+        this.eventBeginsAt = this.dbAudio.measured_at;
+        this.eventEndsAt = this.dbAudio.measured_at;
 
-        for (var wndwInd in analysisResults.results) {
+        for (wndwInd in analysisResults.results) {
+          var currentWindow = analysisResults.results[wndwInd];
 
-          if (analysisResults.results.hasOwnProperty(wndwInd)) {
+          var beginsAt = new Date((this.dbAudio.measured_at.valueOf()+parseInt(currentWindow.window[0])));
+          var endsAt = new Date((this.dbAudio.measured_at.valueOf()+parseInt(currentWindow.window[1])));
+          if(endsAt > this.eventEndsAt){
+            this.eventEndsAt = endsAt;
+          }
 
-            var currentWindow = analysisResults.results[wndwInd];
+          for (tagName in currentWindow.classifications) {
 
-            var beginsAt = new Date((this.dbAudio.measured_at.valueOf() + parseInt(currentWindow.window[0])));
-            var endsAt   = new Date((this.dbAudio.measured_at.valueOf() + parseInt(currentWindow.window[1])));
+            // if (currentWindow.classifications[tagName] > 0.5) {
+            if (tagName.toLowerCase() != "ambient") {
+              var probability =  currentWindow.classifications[tagName];
+              this.cognitionValue = tagName;
 
-            for (var tagName in currentWindow.classifications) {
-
-              if (currentWindow.classifications.hasOwnProperty(tagName)) {
-
-                if (tagName.toLowerCase() !== "ambient") {
-
-                  preInsertGuardianAudioTags.push({
-                    type: "classification",
-                    value: tagName,
-                    confidence: currentWindow.classifications[tagName],
-                    begins_at: beginsAt,
-                    ends_at: endsAt,
-                    begins_at_offset: currentWindow.window[0],
-                    ends_at_offset: currentWindow.window[1],
-                    audio_id: this.dbAudio.id,
-                    tagged_by_model: this.dbModel.id
-                  });
-
-                }
-
-              }
+              preInsertGuardianAudioTags.push({
+                type: "classification",
+                value: tagName,
+                confidence: probability,
+                begins_at: beginsAt,
+                ends_at: endsAt,
+                begins_at_offset: currentWindow.window[0],
+                ends_at_offset: currentWindow.window[1],
+                audio_id: this.dbAudio.id,
+                tagged_by_model: this.dbModel.id
+              });
+              this.probabilityVector.push( probability );
 
             }
 
@@ -112,6 +112,48 @@ router.route("/:audio_id/tags")
         }
 
         return models.GuardianAudioTag.bulkCreate(preInsertGuardianAudioTags)
+      })
+      .then(function (tags) {
+        if(this.dbModel.generate_event==0){
+          return tags;
+        }
+        // queue up cognition analysis
+        // current we only support window-count analysis method
+        // Todo: this code will be deleted and live in an own cognition layer application/env
+        var cognitionParmas = {
+          analysis_method: "window-count",
+          params:  {
+            min_max_windows: [
+              // -1 = infinity
+              [this.dbModel.minimal_detected_windows, -1]
+            ],
+            min_max_probability: [
+              // 1.0 = max prob
+              [this.dbModel.minimal_detection_confidence, 1.0]
+            ]
+          },
+          data: [ this.probabilityVector ],
+          cognition_type: "event",
+          cognition_value: this.cognitionValue
+        };
+
+
+        var createdEvent = {
+          type: this.dbModel.event_type,
+          value: this.dbModel.event_value,
+          begins_at: this.eventBeginsAt,
+          ends_at: this.eventEndsAt,
+          audio_id: req.params.audio_id
+
+        };
+
+        var options = {
+          api_url_domain: req.rfcx.api_url_domain
+        };
+
+
+        return analysisUtils.queueForCognitionAnalysis("rfcx-cognition", createdEvent, cognitionParmas, options);
+
       })
       .then(function() {
         res.status(200).json([]);

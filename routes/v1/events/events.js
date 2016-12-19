@@ -124,6 +124,14 @@ router.route("/event")
                 attributes: [
                   'guid'
                 ]
+              },
+              {
+                model: models.Guardian,
+                as: 'Guardian',
+                attributes: [
+                  'guid',
+                  'shortname'
+                ]
               }
             ]
           },
@@ -276,8 +284,8 @@ router.route('/')
 
     promises.push(models.GuardianAudio.findOne({where: {guid: attrs.audio_id}, include: { model: models.Guardian, as: 'Guardian'}}));
     promises.push(models.AudioAnalysisModel.findOne({where: { $or: {shortname: attrs.model, guid: attrs.model}}}));
-    promises.push(models.GuardianAudioEventType.findOrCreate({where: {value: attrs.type}, defaults: {value: attrs.type}}));
-    promises.push(models.GuardianAudioEventValue.findOrCreate({where: {value: attrs.value}, defaults: {value: attrs.value}}));
+    promises.push(models.GuardianAudioEventType.findOrCreate({where: { $or: {value: attrs.type, id: attrs.type}}, defaults: {value: attrs.type}}));
+    promises.push(models.GuardianAudioEventValue.findOrCreate({where: {$or: {value: attrs.value, id: attrs.value}}, defaults: {value: attrs.value}}));
 
     Promise.all(promises)
       .then(function(data) {
@@ -304,6 +312,7 @@ router.route('/')
         attrs.type = data[2][0].id;
         attrs.value = data[3][0].id;
 
+        attrs.guardian = data[0].Guardian.id;
         attrs.shadow_latitude = data[0].Guardian.latitude;
         attrs.shadow_longitude = data[0].Guardian.longitude;
 
