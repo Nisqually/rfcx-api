@@ -68,6 +68,7 @@ var routes = {
       "tags": [require("./routes/v1/tags/tags")],
 
       "datafilters": [require("./routes/v1/datafilters/datafilters")],
+    "sensations": [require("./routes/v1/sensations/sensations")]
 
   },
   "v2": {

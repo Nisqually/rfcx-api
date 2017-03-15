@@ -7,8 +7,8 @@ module.exports = {
       "  `location` point NOT NULL,\n" +
       "  `source_type` int(11) NOT NULL DEFAULT '1',\n" +
       "  `source_id` int(11) NOT NULL,\n" +
-      "  `data_type` int(11) DEFAULT '1',\n" +
-      "  `data_id` int(11),\n" +
+      "  `data_type` int(11) NOT NULL DEFAULT '1',\n" +
+      "  `data_id` int(11) NOT NULL,\n" +
       "  PRIMARY KEY (`time`,`source_type`,`source_id`),\n" +
       "  KEY `location_query` (`location`(25),`time`,`data_type`) USING BTREE\n" +
       ") ENGINE=InnoDB DEFAULT CHARSET=utf8")
