@@ -3,11 +3,16 @@ var ValidationError = require("./validation-error");
 var Promise = require("bluebird");
 
 module.exports = class Converter {
-  constructor(validatedObject) {
+  constructor(validatedObject, transformedObject) {
+
+    if(validatedObject instanceof Converter)
+    {
+      validatedObject = validatedObject.validatedObject;
+    }
     this.validatedObject = validatedObject;
     this.currentValue = null;
     this.currentProperty = null;
-    this.transformedObject = {};
+    this.transformedObject = transformedObject || {};
     this.conversions = [];
   };
 

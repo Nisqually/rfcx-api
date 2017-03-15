@@ -131,4 +131,10 @@ module.exports = class Conversion {
 
     return this;
   }
+
+  toString(){
+    this.conversions.push(()=>{
+      this.value = this.value.toString();
+    });
+  }
 };
