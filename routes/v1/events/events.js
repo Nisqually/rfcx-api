@@ -11,7 +11,8 @@ var Promise = require("bluebird");
 var ApiConverter = require("../../../utils/api-converter");
 var aws = require("../../../utils/external/aws.js").aws();
 var moment = require('moment');
-
+var eventsService = require('../../../services/events/events-service');
+var sequelize = require("sequelize");
 
 function queryData(req) {
 
@@ -98,6 +99,28 @@ function queryData(req) {
     };
   }
 
+  var omitFalsePositives = true;
+  if (req.query.omit_false_positives === 'false') {
+    omitFalsePositives = false;
+  }
+  var omitUnreviewed = (req.query.omit_unreviewed === 'true');
+
+  if (omitFalsePositives && !omitUnreviewed) {
+    whereClauses.event.reviewer_confirmed = {
+      $not: false
+    };
+  }
+  if (omitFalsePositives && omitUnreviewed) {
+    whereClauses.event.reviewer_confirmed = {
+      $eq: true
+    };
+  }
+  if (!omitFalsePositives && omitUnreviewed) {
+    whereClauses.event.reviewer_confirmed = {
+      $not: null
+    };
+  }
+
   return models.GuardianAudioEvent
     .findAndCountAll({
       where: whereClauses.event,
@@ -150,7 +173,17 @@ function queryData(req) {
           model: models.GuardianAudioEventType,
           as: 'Type',
           where: whereClauses.type
-        }
+        },
+        {
+          model: models.User,
+          as: 'User',
+          attributes: [
+            'guid',
+            'firstname',
+            'lastname',
+            'email'
+          ]
+        },
       ]
     })
 }
@@ -362,6 +395,14 @@ router.route("/tuning")
         res.status(500).json({msg: err});
       });
 
+  });
+
+router.route("/values")
+  .get(passport.authenticate("token", {session: false}), function (req, res) {
+    eventsService
+      .getGuardianAudioEventValues()
+      .then((data) => { res.status(200).json(data); })
+      .catch(e => httpError(res, 500, e, "Could not return Guardian Audio Event Values."));
   });
 
 router.route("/:event_id")
@@ -616,5 +657,29 @@ router.route("/:event_id/review")
 
   })
 ;
+
+router.route("/:guid/confirm")
+  .post(passport.authenticate("token", {session: false}), function (req, res) {
+
+    eventsService.updateEventReview(req.params.guid, true, req.rfcx.auth_token_info.owner_id)
+      .then((data) => {
+        res.status(200).json(data);
+      })
+      .catch(sequelize.EmptyResultError, e => httpError(res, 404, null, e.message))
+      .catch(e => httpError(res, 500, e, "Could not update Event review."));
+
+  });
+
+router.route("/:guid/reject")
+  .post(passport.authenticate("token", {session: false}), function (req, res) {
+
+    eventsService.updateEventReview(req.params.guid, false, req.rfcx.auth_token_info.owner_id)
+      .then((data) => {
+        res.status(200).json(data);
+      })
+      .catch(sequelize.EmptyResultError, e => httpError(res, 404, null, e.message))
+      .catch(e => httpError(res, 500, e, "Could not update Event review."));
+
+  });
 
 module.exports = router;
