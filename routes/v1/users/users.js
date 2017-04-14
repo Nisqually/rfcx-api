@@ -352,7 +352,6 @@ router.route("/checkin")
 
     // map HTTP params to service params
     var serviceParams = {
-      source_type: 2,
       data_type: '0',
       data_id: '0',
       latitude: req.body.latitude,
@@ -364,7 +363,10 @@ router.route("/checkin")
     usersService.getUserByGuid(req.rfcx.auth_token_info.guid)
       .then((user) => {
         serviceParams.source_id = user.id;
-        return true;
+        return sensationsService.getSourceTypeIdByName(models.User.tableName); // tableName === 'Users'
+      })
+      .then((source) => {
+        serviceParams.source_type = source.id;
       })
       .then(() => {
         return sensationsService.createSensations(serviceParams);
